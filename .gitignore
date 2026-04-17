@@ -1,1 +1,9 @@
 results/
+
+tex/build/*
+!tex/build/*.pdf
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.synctex.gz

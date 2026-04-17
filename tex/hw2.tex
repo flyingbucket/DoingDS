@@ -1,0 +1,270 @@
+\documentclass[a4paper, 11pt]{article}
+
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{ctex}
+\geometry{left=2.5cm, right=2.5cm, top=3cm, bottom=3cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.96}
+
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize, % 使用等宽字体和较小字号
+    breakatwhitespace=false,         
+    breaklines=true,                   % 自动折行
+    captionpos=b,                      % 标题位置在底部
+    keepspaces=true,                 
+    numbers=left,                      % 行号在左侧
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+
+\lstset{style=pythonstyle}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+
+\title{\textbf{北京高端酒店价格影响因素的统计分析报告}}
+\author{李孟霖 2311067}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+本报告基于北京高端酒店的数据集，针对酒店房价及其潜在影响因素展开统计分析。由于原始房价数据呈现显著的右偏分布，本研究首先对目标变量进行了对数变换。随后，运用探索性数据分析（EDA）、K-Means空间聚类、方差分析（ANOVA）以及多元线性回归模型，深入探讨了客房类型、各项评分、地理位置及周边环境对酒店定价的定量影响。研究发现，房间类型和卫生评分是决定溢价的最核心因素。
+\end{abstract}
+
+\section{数据预处理与探索性分析 (EDA)}
+
+\subsection{目标变量的分布与对数变换}
+针对连续型变量“房价”，初步的直方图分析（图 \ref{fig:dist}）表明其原始分布呈现严重的右偏长尾特征。为了满足线性回归对因变量正态性的基本假设要求，我们对房价进行了自然对数变换（$\ln(\text{房价})$）。变换后的对数房价呈现出良好的钟形正态分布，为后续的参数检验奠定了基础。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../results/hw2/01_price_distribution.png}
+    \caption{房价原始分布与对数变换后分布对比}
+    \label{fig:dist}
+\end{figure}
+
+\subsection{数值特征的相关性分析}
+通过计算各数值型特征与对数房价的 Pearson 相关系数（图 \ref{fig:corr}），我们发现：卫生评分（$r=0.52$）与服务评分（$r=0.52$）与对数房价的正相关性最为显著；其次是设施评分和位置评分。而装修时间、评价数以及周边环境特征的线性相关性相对较弱。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{../results/hw2/02_correlation_heatmap.png}
+    \caption{各数值特征与房价的相关系数热力图}
+    \label{fig:corr}
+\end{figure}
+
+\subsection{地区与房间类型的方差分析}
+为了检验非数值型变量（地区、房间类型）对房价（对数变换后）的影响是否具有统计学意义，我们分别执行了单因素方差分析（One-way ANOVA）。方差分析的核心在于比较组间变异与组内变异（残差）的比例（即 $F$ 值）。
+
+针对“地区”变量的方差分析结果如表 \ref{tab:anova_area} 所示。
+\begin{table}[H]
+    \centering
+    \caption{地区对对数房价的单因素方差分析表}
+    \label{tab:anova_area}
+    \begin{tabular}{lrrrr}
+        \toprule
+        变异来源 & 平方和 (Sum Sq) & 自由度 (df) & $F$ 值 & $p$ 值 ($P>F$) \\
+        \midrule
+        地区 (Area) & 12.887 & 3 & 14.182 & $6.47 \times 10^{-9}$ \\
+        残差 (Residual) & 167.202 & 552 & - & - \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+结果表明，$F(3, 552) = 14.182$，$p = 6.47 \times 10^{-9} < 0.001$。这说明不同行政区域的高端酒店定价存在极显著的统计学差异，即“地段”对高端酒店的基础定价有着不可忽视的影响。
+
+针对“房间类型”变量的方差分析结果如表 \ref{tab:anova_room} 所示。
+\begin{table}[H]
+    \centering
+    \caption{房间类型对对数房价的单因素方差分析表}
+    \label{tab:anova_room}
+    \begin{tabular}{lrrrr}
+        \toprule
+        变异来源 & 平方和 (Sum Sq) & 自由度 (df) & $F$ 值 & $p$ 值 ($P>F$) \\
+        \midrule
+        房间类型 (Room Type) & 53.495 & 2 & 116.840 & $4.73 \times 10^{-43}$ \\
+        残差 (Residual) & 126.594 & 553 & - & - \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+结果表明，$F(2, 553) = 116.840$，$p = 4.73 \times 10^{-43} < 0.001$。值得注意的是，房间类型产生的组间平方和（53.495）远大于地区产生的组间平方和（12.887），且其 $F$ 值极其庞大。这表明相较于地理位置，**客房的物理属性（房型）对房价变异的解释力度更强、影响更为剧烈**。
+
+从随后的箱线图（图 \ref{fig:box}）中也可以直观印证上述统计结论：“豪华套间”的定价中位数远高于“商务间”与“标准间”，形成了极其明显的价格梯队；而不同地区间的价格箱体虽然也有错落，但重叠区域相对较大。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../results/hw2/03_categorical_boxplots.png}
+    \caption{不同地区与房间类型的对数房价箱线图}
+    \label{fig:box}
+\end{figure}
+\subsection{基于经纬度的空间聚类}
+我们提取了酒店的经纬度坐标，经过标准化处理后利用 K-Means 算法（$k=4$）将酒店划分为四个地理商圈。方差分析与箱线图（图 \ref{fig:kmeans}）同样揭示了不同商圈间（例如核心商业区与远郊区）的明显房价梯度。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{../results/hw2/04_kmeans_clusters.png}
+    \caption{北京高端酒店地理聚类与房价分布}
+    \label{fig:kmeans}
+\end{figure}
+
+\section{多元线性回归分析}
+
+为了剥离混杂因素，量化各项指标对对数房价的净影响，我们建立了一个全模型的普通最小二乘法（OLS）回归模型。
+
+\subsection{模型整体表现}
+该模型具有较好的解释效力：$R^2 = 0.606$，调整后 $R^2 = 0.594$，表明模型能解释约 60\% 的房价变异。模型的整体 $F$ 检验统计量为 $48.76$（$p < 0.001$），说明模型整体非常显著。
+
+\subsection{回归系数与显著性解读}
+根据回归摘要报告，主要结论如下：
+\begin{enumerate}
+    \item \textbf{房型溢价最为显著：} 以商务间为基准，豪华套间的系数为 $0.4494$（$p < 0.001$），这意味着在控制其他变量的情况下，豪华套间的价格约比商务间高出 $56.7\%$（$e^{0.4494}-1$）；而标准间显著低于基准水平（系数 $-0.2995, p < 0.001$）。
+    \item \textbf{软性评分比硬件评分更重要：} 卫生评分的系数高达 $1.0812$（$p < 0.001$），服务评分为 $0.7577$（$p = 0.005$），均显著正向驱动房价；然而设施评分和位置评分在控制了其他变量后并未表现出统计显著性（$p > 0.05$）。这可能意味着在高端酒店市场，消费者默认硬件及格，更愿意为顶级的卫生与服务买单（亦或是评分间存在多重共线性）。
+    \item \textbf{周边环境的微小影响：} “出行住宿”配套数对房价有微弱的正向影响（系数 $0.0017, p = 0.001$），而周边“公司”密度和“校园生活”密度表现出微弱的负相关影响（$p < 0.05$）。这表明顶级高端酒店往往并不需要过度依赖密集扎堆的公司或校园商圈，甚至可能倾向于相对独立或静谧的环境。
+    \item \textbf{控制变量效应：} 在引入了多元特征后，“地区”和“K-Means地理商圈”哑变量的大多数水平不再显著。这说明单纯的“地段标签”带来的溢价，大部分已经被经纬度、评分以及周边配套数据所吸收和解释。
+\end{enumerate}
+
+\section{结论与建议}
+综合以上分析，针对北京高端酒店市场的定价与定位���略，得出以下主要结论：
+\begin{itemize}
+    \item \textbf{合理优化房型结构：} 房型（尤其是套房）是拉开价格梯队的最核心要素，酒店在改造期可适当增加高附加值套房的比例。
+    \item \textbf{死磕卫生与服务：} 在高端酒店领域，硬件设施虽然是基础，但真正能产生极高溢价的是“卫生”和“服务”。提升这两项评分对客房单价的拉动作用极其显著。
+    \item \textbf{理性看待商圈：} 选址时无需刻意扎堆于公司或高校密集的区域，高端客群更愿意为综合体验而非纯粹的商圈聚集度买单。
+\end{itemize}
+
+\appendix
+\section{Python 源代码}
+\begin{lstlisting}[language=Python, caption=完整的 EDA 与回归分析脚本]
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import statsmodels.api as sm
+from pathlib import Path
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from statsmodels.formula.api import ols
+
+result_dir = Path("results/hw2")
+result_dir.mkdir(parents=True, exist_ok=True)
+
+plt.rcParams["font.sans-serif"] = ["SimHei"]
+plt.rcParams["axes.unicode_minus"] = False
+
+df = pd.read_csv("data/BeijingHotel.csv")
+
+# 数据预处理
+df["log_房价"] = np.log(df["房价"])
+df["装修距今年数"] = 2026 - df["装修时间"]
+
+# EDA
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+sns.histplot(df["房价"], kde=True, ax=axes[0], color="skyblue")
+axes[0].set_title("房价分布 (原始数据)")
+sns.histplot(df["log_房价"], kde=True, ax=axes[1], color="lightgreen")
+axes[1].set_title("房价分布 (Log变换后)")
+plt.tight_layout()
+plt.savefig(result_dir / "01_price_distribution.png", dpi=300)
+plt.close()
+
+plt.figure(figsize=(8, 10))
+numeric_cols = df.select_dtypes(include=[np.number]).columns
+corr_matrix = df[numeric_cols].corr()
+sns.heatmap(
+    corr_matrix[["log_房价", "房价"]].sort_values(by="log_房价", ascending=False),
+    annot=True,
+    cmap="coolwarm",
+    vmin=-1,
+    vmax=1,
+)
+plt.title("各特征与房价的相关系数")
+plt.tight_layout()
+plt.savefig(result_dir / "02_correlation_heatmap.png", dpi=300)
+plt.close()
+
+fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+sns.boxplot(x="地区", y="log_房价", data=df, ax=axes[0], palette="Set2")
+axes[0].set_title("不同地区的房价(Log)分布")
+axes[0].tick_params(axis="x", rotation=45)
+sns.boxplot(x="房间类型", y="log_房价", data=df, ax=axes[1], palette="Set3")
+axes[1].set_title("不同房间类型的房价(Log)分布")
+axes[1].tick_params(axis="x", rotation=45)
+plt.tight_layout()
+plt.savefig(result_dir / "03_categorical_boxplots.png", dpi=300)
+plt.close()
+
+# Clustering and ANOVA
+# 地理 K-Means 聚类
+coords = df[["经度", "纬度"]]
+scaler = StandardScaler()
+coords_scaled = scaler.fit_transform(coords)
+
+kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+df["地理商圈"] = kmeans.fit_predict(coords_scaled)
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+sns.scatterplot(
+    x="经度", y="纬度", hue="地理商圈", palette="Set1", data=df, ax=axes[0], s=60
+)
+axes[0].set_title("北京高端酒店地理聚类 (空间分布)")
+sns.boxplot(x="地理商圈", y="log_房价", data=df, palette="Set1", ax=axes[1])
+axes[1].set_title("不同地理商圈的房价分布 (Log变换后)")
+plt.tight_layout()
+plt.savefig(result_dir / "04_kmeans_clusters.png", dpi=300)
+plt.close()
+
+# ANOVA 检验
+model_area = ols("log_房价 ~ C(地区)", data=df).fit()
+anova_area = sm.stats.anova_lm(model_area, typ=2)
+
+model_room = ols("log_房价 ~ C(房间类型)", data=df).fit()
+anova_room = sm.stats.anova_lm(model_room, typ=2)
+
+with open(result_dir / "05_anova_results.txt", "w", encoding="utf-8") as f:
+    f.write("=== 地区对房价(Log)的方差分析 ===\n")
+    f.write(anova_area.to_string())
+    f.write("\n\n=== 房间类型对房价(Log)的方差分析 ===\n")
+    f.write(anova_room.to_string())
+
+
+# OLS
+formula = (
+    "log_房价 ~ 卫生评分 + 服务评分 + 设施评分 + 位置评分 + 评价数 + "
+    "装修距今年数 + 公司 + 出行住宿 + 校园生活 + "
+    "C(地区) + C(房间类型) + C(地理商圈)"
+)
+
+final_model = ols(formula, data=df).fit()
+
+with open(result_dir / "06_regression_summary.txt", "w", encoding="utf-8") as f:
+    f.write(final_model.summary().as_text())
+
+df.to_csv(result_dir / "processed_BeijingHotel.csv", index=False, encoding="utf-8-sig")
+\end{lstlisting}
+\end{document}
+
