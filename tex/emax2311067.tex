@@ -1,0 +1,48 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[UTF8]{ctex} % 支持中文
+\usepackage{amsmath}    % 数学公式
+\usepackage{amsfonts}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+
+\begin{document}
+
+
+\begin{enumerate}
+    % 第一题：判断题
+    \item \textbf{【判断题】（难度：低）} \\
+    在进行统计建模时，如果因变量 $Y$ 是定性数据（例如：消费者是否购买某产品、病人的诊断结果为“得病”或“未得病”），我们通常可以直接使用经典的线性回归模型进行建模，而不需要做任何特殊处理。 \hfill （\quad）
+
+    \vspace{2em}
+
+    % 第二题：选择题
+    \item \textbf{【选择题】（难度：中）} \\
+    在评估逻辑回归或其他二分类模型的分类能力时，常会使用 ROC 曲线下的面积（AUC 值）。关于 AUC，下列说法中正确的是？
+    \begin{enumerate}
+        \item AUC 的取值大小会随着分类阈值（Threshold）的改变而发生变化。
+        \item AUC 值越接近 0.5，说明该模型的分类预测效果越理想。
+        \item AUC 衡量的是模型在所有可能的分类阈值下的平均表现，其取值与阈值的选取无关。
+        \item 当 AUC 等于 1 时，说明模型对所有样本的预测结果与实际情况完全相反。
+    \end{enumerate}
+
+    \vspace{2em}
+
+    % 第三题：填空题
+    \item \textbf{【填空题】（难度：高）} \\
+    在生存分析中，由于研究结束、失访或个体死于其他原因，导致我们无法观测到个体确切的“失效”或“死亡”时间，这种现象在统计学上被称为\underline{\hspace{4em}}。在生存回归模型中，\underline{\hspace{4em}}模型（比例风险模型）是对“风险”进行建模，其估计出来的系数符号通常与 AFT（加速失效时间）模型估计出的系数符号\underline{\hspace{4em}}。
+
+\end{enumerate}
+
+\vspace{4em}
+
+% 答案部分（可选）
+\begin{hr}
+\end{hr}
+\textbf{参考答案及解析：}
+\begin{itemize}
+    \item \textbf{1. 错误。} 解析：定性数据应选用逻辑回归、决策树等分类模型，而非线性回归。
+    \item \textbf{2. C。} 解析：AUC 反映模型整体区分能力，与阈值无关；0.5 表示随机水平。
+    \item \textbf{3. 数据删失（Censoring）；Cox；相反。} 解析：Cox 针对风险建模，AFT 针对时间建模，风险增加意味着存活时间缩短，故系数符号通常相反。
+\end{itemize}
+
+\end{document}
