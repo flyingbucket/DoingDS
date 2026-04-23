@@ -1,0 +1,83 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{ctex}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+\geometry{left=2.5cm,right=2.5cm,top=3cm,bottom=3cm}
+
+\title{\textbf{期末考试大题：贝叶斯线性回归与变分推断}}
+\author{李孟霖 2311067}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{题目背景}
+某研究课题组正在分析小区物业费 $y$（元/m²）与房价单价 $x$（万元/m²）之间的关系。已知观测模型为：
+\begin{equation}
+y_i = wx_i + b + \epsilon_i, \quad \epsilon_i \sim N(0, 1)
+\end{equation}
+现有 $n$ 组独立观测数据 $D = \{(x_i, y_i)\}_{i=1}^n$。研究者采用贝叶斯方法，设定参数 $w, b$ 的先验分布均为独立的正态分布 $\phi(w)$ 和 $\phi(b)$，其中 $\phi(\cdot)$ 为标准正态分布的密度函数。
+
+\section*{问题}
+
+\begin{enumerate}[label=(\arabic*)]
+    \item \textbf{似然函数与后验推导 (8分)} \\
+    请根据已知条件写出参数 $\{w, b\}$ 关于数据 $D$ 的\textbf{对数似然函数} $\ln L(w, b)$。若已知真实的后验分布 $p(w, b \mid D) \propto p(D \mid w, b)p(w, b)$，请简述在参数维度较高或数据量较大时，直接求解该后验分布存在什么数学上的困难？
+
+    \item \textbf{变分下界 (ELBO) 的构造 (12分)} \\
+    为了近似后验分布，我们引入变分分布 $q_\theta(w, b)$，假设其满足平均场独立性，即 $w \sim N(\mu_w, \sigma_w^2)$ 且 $b \sim N(\mu_b, \sigma_b^2)$。
+    \begin{enumerate}[label=\alph*.]
+        \item 请给出变分分布的联合概率密度函数 $q_\theta(w, b)$ 的表达式。
+        \item 试证明或展开说明，最大化证据下界 $\text{ELBO}(\theta) = \mathbb{E}_{q_\theta} [\ln p(D|w, b)] - \text{KL}(q_\theta \parallel p)$ 等价于最小化变分分布与真实后验之间的 KL 散度。
+    \end{enumerate}
+
+    \item \textbf{随机梯度推断与重参数化 (10分)} \\
+    在实际训练中，我们需要通过梯度上升法更新变分参数 $\theta = \{\mu_w, \sigma_w, \mu_b, \sigma_b\}$。
+    \begin{enumerate}[label=\alph*.]
+        \item 解释为什么在计算 $\nabla_\theta \mathbb{E}_{q_\theta} [\ln p(D|w, b)]$ 时不能直接将导数符号移入期望内部？
+        \item 请写出针对 $w$ 的\textbf{重参数化（Reparameterization）}方案，并利用该方案给出 $\text{ELBO}$ 对均值参数 $\mu_w$ 的随机梯度估算表达式。
+    \end{enumerate}
+\end{enumerate}
+
+\newpage
+
+\section*{参考答案要点}
+
+\subsection*{第(1)问}
+\begin{itemize}
+    \item \textbf{对数似然函数}：
+    由于 $\epsilon_i$ 独立同分布，似然函数为 $L(w, b) = \prod_{i=1}^n \phi(y_i - wx_i - b)$。取对数得：
+    \[ \ln L(w, b) = \sum_{i=1}^n \ln \left( \frac{1}{\sqrt{2\pi}} \exp\left( -\frac{1}{2}(y_i - wx_i - b)^2 \right) \right) = -\frac{n}{2}\ln(2\pi) - \frac{1}{2}\sum_{i=1}^n (y_i - wx_i - b)^2 \]
+    \item \textbf{数学困难}：
+    后验分布的分母（证据因子）$p(D) = \iint p(D|w,b)p(w,b) dwdb$ 涉及对高维参数空间的积分。在大多数非共轭情形下，该积分没有解析解，且随着参数维度 $d$ 的增加，数值积分的复杂度呈 $O(e^d)$ 增长，即“维度灾难”。
+\end{itemize}
+
+\subsection*{第(2)问}
+\begin{itemize}
+    \item \textbf{联合变分密度}：
+    \[ q_\theta(w, b) = \frac{1}{\sigma_w}\phi\left(\frac{w-\mu_w}{\sigma_w}\right) \cdot \frac{1}{\sigma_b}\phi\left(\frac{b-\mu_b}{\sigma_b}\right) \]
+    \item \textbf{证明要点}：
+    根据贝叶斯恒等式：$\ln p(D) = \ln \frac{p(D, w, b)}{p(w, b|D)}$。对等式两边关于 $q_\theta$ 求期望：
+    \[ \ln p(D) = \int q_\theta \ln \frac{p(D, w, b)}{q_\theta} dwdb + \int q_\theta \ln \frac{q_\theta}{p(w, b|D)} dwdb \]
+    即 $\ln p(D) = \text{ELBO}(\theta) + \text{KL}(q_\theta \parallel p_{post})$。由于 $\ln p(D)$ 是由数据确定的常数，最大化 $\text{ELBO}$ 等价于最小化 $\text{KL}(q_\theta \parallel p_{post})$。
+\end{itemize}
+
+\subsection*{第(3)问}
+\begin{itemize}
+    \item \textbf{不可直接求导原因}：
+    期望算子 $\mathbb{E}_{q_\theta}[\cdot]$ 的积分测度依赖于参数 $\theta$。直接求导无法捕捉到分布形状变化对期望值的影响。
+    \item \textbf{重参数化方案}：
+    引入辅助噪声变量 $\epsilon \sim N(0, 1)$，令 $w = \mu_w + \sigma_w \epsilon$。
+    \item \textbf{随机梯度估算}：
+    令 $\hat{y}_i = (\mu_w + \sigma_w \epsilon)x_i + (\mu_b + \sigma_b \epsilon_b)$，则：
+    \[ \frac{\partial \text{ELBO}}{\partial \mu_w} \approx \sum_{i=1}^n (y_i - \hat{y}_i)x_i - \mu_w \]
+    其中 $\mu_w$ 项来自 $\text{KL}$ 散度对 $\mu_w$ 的偏导数。
+\end{itemize}
+
+\end{document}
